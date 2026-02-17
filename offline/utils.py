@@ -60,78 +60,65 @@ def extract_characters(img, rectangle):
 
 # 3- Feature Extraction Functions
 
-def calculate_cavities_number(digit_binary_img):
-    contours, hierarchy = cv2.findContours(digit_binary_img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-
-    if hierarchy is None:
-        return 0
-    
-    cavities = 0
-    for h in hierarchy[0]:
-        if h[3] != -1:
-            cavities += 1
-
-    return cavities  # 0, 1 or 2
-
-def calculate_cavities_area(digit_binary_img):
-    contours, hierarchy = cv2.findContours(digit_binary_img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-
-    if hierarchy is None:
-        return 0
-    
-    cavities_area = 0
-    for i, h in enumerate(hierarchy[0]):
-        if h[3] != -1:  # If it's a cavity
-            cavities_area += cv2.contourArea(contours[i])
-
-    img_area = digit_binary_img.shape[0] * digit_binary_img.shape[1]
-    ratio = cavities_area / img_area
-    return ratio
-
-def calculate_directional_concavities(digit_binary_img):
+def calculate_cavities(digit_binary_img):
     rows, cols = digit_binary_img.shape
     img_area = rows * cols
 
-    # West: for each row, distance from left edge to first white pixel
-    west = 0
-    for r in range(rows):
-        for c in range(cols):
-            if digit_binary_img[r, c] == 255:
-                west += c
-                break
+    # Mask of digit pixels (white = 255) and background pixels
+    digit_mask = digit_binary_img == 255
+    bg_mask = ~digit_mask
 
-    # East: for each row, distance from right edge to first white pixel
-    east = 0
-    for r in range(rows):
-        for c in range(cols - 1, -1, -1):
-            if digit_binary_img[r, c] == 255:
-                east += (cols - 1 - c)
-                break
+    # --- Build 4 wall visibility masks ---
 
-    # North: for each column, distance from top edge to first white pixel
-    north = 0
-    for c in range(cols):
-        for r in range(rows):
-            if digit_binary_img[r, c] == 255:
-                north += r
-                break
+    # wall_north[r,c] = True if there is a digit pixel ABOVE row r in column c
+    wall_north = np.zeros_like(digit_mask)
+    for r in range(1, rows):
+        wall_north[r, :] = wall_north[r - 1, :] | digit_mask[r - 1, :]
 
-    # South: for each column, distance from bottom edge to first white pixel
-    south = 0
-    for c in range(cols):
-        for r in range(rows - 1, -1, -1):
-            if digit_binary_img[r, c] == 255:
-                south += (rows - 1 - r)
-                break
+    # wall_south[r,c] = True if there is a digit pixel BELOW row r in column c
+    wall_south = np.zeros_like(digit_mask)
+    for r in range(rows - 2, -1, -1):
+        wall_south[r, :] = wall_south[r + 1, :] | digit_mask[r + 1, :]
 
-    # Normalize by image area
-    return north / img_area, south / img_area, east / img_area, west / img_area
+    # wall_west[r,c] = True if there is a digit pixel LEFT of column c in row r
+    wall_west = np.zeros_like(digit_mask)
+    for c in range(1, cols):
+        wall_west[:, c] = wall_west[:, c - 1] | digit_mask[:, c - 1]
+
+    # wall_east[r,c] = True if there is a digit pixel RIGHT of column c in row r
+    wall_east = np.zeros_like(digit_mask)
+    for c in range(cols - 2, -1, -1):
+        wall_east[:, c] = wall_east[:, c + 1] | digit_mask[:, c + 1]
+
+    # --- Combine masks with logical operations ---
+
+    # Central cavity: background pixel blocked in ALL 4 directions (closed hole)
+    central = bg_mask & wall_north & wall_south & wall_east & wall_west
+
+    # North cavity: open to North, blocked S + E + W
+    north = bg_mask & (~wall_north) & wall_south & wall_east & wall_west
+
+    # South cavity: open to South, blocked N + E + W
+    south = bg_mask & wall_north & (~wall_south) & wall_east & wall_west
+
+    # East cavity: open to East, blocked N + S + W
+    east = bg_mask & wall_north & wall_south & (~wall_east) & wall_west
+
+    # West cavity: open to West, blocked N + S + E
+    west = bg_mask & wall_north & wall_south & wall_east & (~wall_west)
+
+    # Normalize each surface by total image area
+    return (
+        np.sum(central) / img_area,
+        np.sum(north) / img_area,
+        np.sum(south) / img_area,
+        np.sum(east) / img_area,
+        np.sum(west) / img_area
+    )
 
 def create_feature_vector(digit_img):
-    nb = calculate_cavities_number(digit_img)
-    area = calculate_cavities_area(digit_img)
-    north, south, east, west = calculate_directional_concavities(digit_img)
-    return [nb, area, north, south, east, west]
+    central, north, south, east, west = calculate_cavities(digit_img)
+    return [central, north, south, east, west]
 
 
 # 4- Data Management Functions
