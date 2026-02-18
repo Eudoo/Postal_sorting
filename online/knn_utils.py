@@ -6,9 +6,9 @@ from collections import Counter
 def calculate_distance(vector1, vector2):
     return np.sqrt(np.sum((np.array(vector1) - np.array(vector2)) ** 2))
 
-# 2- KNN Prediction 
+# 2- KNN Prediction (nearest neighbors)
 
-def predict_knn(new_features, X_train, y_train, k=3):
+def predict_features_knn(new_features, X_train, y_train, k=3):
     # Calculate distance between new_features and all training vectors
     distances = []
     for i in range(len(X_train)):
@@ -26,4 +26,17 @@ def predict_knn(new_features, X_train, y_train, k=3):
     vote = Counter(k_labels)
     prediction = vote.most_common(1)[0][0]
     
+    return prediction
+
+# 3- Nearest Centroid Prediction (nearest mean)
+
+def predict_centroid_knn(new_features, centroids):
+    # Calculate distance between new_features and each class centroid
+    min_dist = float('inf')
+    prediction = 0
+    for c in range(len(centroids)):
+        dist = calculate_distance(new_features, centroids[c])
+        if dist < min_dist:
+            min_dist = dist
+            prediction = c
     return prediction

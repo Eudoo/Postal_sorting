@@ -159,15 +159,23 @@ def apply_normalization(features, min_vals, max_vals):
     range_vals[range_vals == 0] = 1
     return (np.array(features) - min_vals) / range_vals
 
+def calculate_centroids(X, y, num_classes=10):
+    """Calculate mean feature vector per class (centroid)."""
+    centroids = np.zeros((num_classes, X.shape[1]))
+    for c in range(num_classes):
+        centroids[c] = np.mean(X[y == c], axis=0)
+    return centroids
+
 
 # 5- Data Management Functions
 
-def save_data(features_list, labels_list, filename, min_vals=None, max_vals=None):
+def save_data(features_list, labels_list, filename, min_vals=None, max_vals=None, centroids=None):
     np.savez(filename,
              features_list=features_list,
              labels_list=labels_list,
              min_vals=min_vals,
-             max_vals=max_vals)
+             max_vals=max_vals,
+             centroids=centroids)
 
 def load_data(filename):
     data = np.load(filename)
@@ -175,4 +183,5 @@ def load_data(filename):
     labels_list = data['labels_list']
     min_vals = data['min_vals']
     max_vals = data['max_vals']
-    return features_list, labels_list, min_vals, max_vals
+    centroids = data['centroids']
+    return features_list, labels_list, min_vals, max_vals, centroids

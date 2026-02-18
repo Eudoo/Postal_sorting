@@ -51,6 +51,10 @@ print(f"y shape: {y.shape}")
 X_norm, min_vals, max_vals = normalize_features(X)
 print(f"X shape (normalized): {X_norm.shape}")
 
-# Save training data with normalization parameters
-save_data(X_norm, y, OUTPUT_FILE, min_vals, max_vals)
+# Compute centroids (mean feature vector per class)
+centroids = calculate_centroids(X_norm, y)
+print(f"Centroids shape: {centroids.shape}")
+
+# Save training data with normalization parameters and centroids
+save_data(X_norm, y, OUTPUT_FILE, min_vals, max_vals, centroids)
 print(f"Training data saved to {OUTPUT_FILE}")
