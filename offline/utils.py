@@ -55,7 +55,102 @@ def extract_characters(img, rectangle):
     roi = img[rectangle[1]:rectangle[1]+rectangle[3], rectangle[0]:rectangle[0]+rectangle[2]]
     roi = cv2.resize(roi, DIGIT_SIZE)
     _, roi = cv2.threshold(roi, 127, 255, cv2.THRESH_BINARY)
+    roi = correct_rotation(roi)  # Q8: straighten tilted digits
     return roi
+
+
+# 2b- Rotation Correction (Q8)
+
+def correct_rotation(digit_binary_img):
+    """Q8: Correct rotation by aligning the principal axis to vertical using image moments.
+    
+    Uses 2nd order central moments (mu20, mu02, mu11) to compute the orientation
+    angle of the principal axis. If the digit is tilted between 5° and 45°,
+    applies a counter-rotation to straighten it.
+    """
+    M = cv2.moments(digit_binary_img)
+
+    # Need non-zero area
+    if M['m00'] == 0:
+        return digit_binary_img
+
+    # Principal axis angle (degrees) relative to horizontal
+    # theta = 0.5 * arctan2(2*mu11, mu20 - mu02)
+    theta = 0.5 * np.arctan2(2 * M['mu11'], M['mu20'] - M['mu02'])
+    angle_deg = np.degrees(theta)
+
+    # Correction to bring principal axis to vertical (90°)
+    correction = 90 - angle_deg
+
+    # Normalize to [-90, 90]
+    if correction > 90:
+        correction -= 180
+    elif correction < -90:
+        correction += 180
+
+    # Only correct moderate tilts (5°-45°), skip near-upright or ambiguous
+    if abs(correction) < 5 or abs(correction) > 45:
+        return digit_binary_img
+
+    rows, cols = digit_binary_img.shape
+    center = (cols / 2, rows / 2)
+    rot_matrix = cv2.getRotationMatrix2D(center, correction, 1.0)
+    rotated = cv2.warpAffine(digit_binary_img, rot_matrix, (cols, rows),
+                              borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    _, rotated = cv2.threshold(rotated, 127, 255, cv2.THRESH_BINARY)
+    return rotated
+
+
+# 2c- Touching Digit Separation (Q9)
+
+def split_touching_digits(binary_img, rectangles):
+    """Q9: Split rectangles that contain multiple touching digits.
+    
+    Uses the width/height ratio to detect multi-digit rectangles,
+    then finds optimal split points via vertical projection profile
+    (column with minimum white pixels = best separation point).
+    """
+    new_rectangles = []
+
+    for (x, y, w, h) in rectangles:
+        # Estimate number of digits: a single digit is roughly as wide as tall or narrower
+        num_digits = max(1, round(w / h))
+
+        if num_digits <= 1:
+            new_rectangles.append((x, y, w, h))
+            continue
+
+        # Extract ROI
+        roi = binary_img[y:y+h, x:x+w]
+
+        # Vertical projection: count white pixels per column
+        projection = np.sum(roi == 255, axis=0)
+
+        # Find (num_digits - 1) split points at projection valleys
+        split_width = w // num_digits
+        split_points = []
+
+        for i in range(1, num_digits):
+            expected = i * split_width
+            search_start = max(0, expected - split_width // 3)
+            search_end = min(w, expected + split_width // 3)
+            search_region = projection[search_start:search_end]
+
+            if len(search_region) > 0:
+                split_col = search_start + int(np.argmin(search_region))
+                split_points.append(split_col)
+            else:
+                split_points.append(expected)
+
+        # Build sub-rectangles from split points
+        split_points = [0] + sorted(split_points) + [w]
+        for i in range(len(split_points) - 1):
+            sx = x + split_points[i]
+            sw = split_points[i + 1] - split_points[i]
+            if sw > 0:
+                new_rectangles.append((sx, y, sw, h))
+
+    return new_rectangles
 
 
 # 3- Feature Extraction Functions

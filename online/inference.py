@@ -58,6 +58,9 @@ def inference(mode="features"):
         contours = detect_contours(binarized)
         rectangles = filter_contours(contours)
 
+        # Q9: Split touching digits
+        rectangles = split_touching_digits(binarized, rectangles)
+
         true_code = img_name.split(" ")[0]
         print(f"\n--- {img_name} ---")
         print(f"Digits found: {len(rectangles)}")
@@ -81,7 +84,7 @@ def inference(mode="features"):
                 predictions["centroid"].append(str(int(pred_c)))
 
             # Annotate image (use first method for display)
-            display_pred = predictions[methods[0]][-1]
+            display_pred = predictions[methods[1]][-1]
             x, y, w, h = rect
             cv2.rectangle(img_display, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(img_display, display_pred, (x, y - 5),

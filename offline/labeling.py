@@ -28,6 +28,9 @@ for digit in range(10):
     contours = detect_contours(binarized)
     rectangles = filter_contours(contours)
 
+    # Q9: Split touching digits
+    rectangles = split_touching_digits(binarized, rectangles)
+
     # Safety check
     if len(rectangles) != EXPECTED_DIGITS_PER_IMAGE:
         print(f"[WARNING] {digit}.png : {len(rectangles)} contours found (expected {EXPECTED_DIGITS_PER_IMAGE})")
