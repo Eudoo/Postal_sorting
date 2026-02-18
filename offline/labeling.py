@@ -28,7 +28,7 @@ for digit in range(10):
     contours = detect_contours(binarized)
     rectangles = filter_contours(contours)
 
-    # Q9: Split touching digits
+    # Split touching digits
     rectangles = split_touching_digits(binarized, rectangles)
 
     # Safety check

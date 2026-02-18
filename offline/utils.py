@@ -62,7 +62,7 @@ def extract_characters(img, rectangle):
 # 2b- Rotation Correction (Q8)
 
 def correct_rotation(digit_binary_img):
-    """Q8: Correct rotation by aligning the principal axis to vertical using image moments.
+    """Correct rotation by aligning the principal axis to vertical using image moments.
     
     Uses 2nd order central moments (mu20, mu02, mu11) to compute the orientation
     angle of the principal axis. If the digit is tilted between 5° and 45°,
@@ -70,7 +70,6 @@ def correct_rotation(digit_binary_img):
     """
     M = cv2.moments(digit_binary_img)
 
-    # Need non-zero area
     if M['m00'] == 0:
         return digit_binary_img
 
@@ -104,7 +103,7 @@ def correct_rotation(digit_binary_img):
 # 2c- Touching Digit Separation (Q9)
 
 def split_touching_digits(binary_img, rectangles):
-    """Q9: Split rectangles that contain multiple touching digits.
+    """Split rectangles that contain multiple touching digits.
     
     Uses the width/height ratio to detect multi-digit rectangles,
     then finds optimal split points via vertical projection profile

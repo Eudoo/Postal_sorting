@@ -5,14 +5,13 @@ import sys
 import os
 import argparse
 
-# Add offline/ to path so we can import its utils
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'offline'))
 
 from utils import *
 from knn_utils import predict_features_knn, predict_centroid_knn
 from metrics import display_metrics
 
-# ============== CONFIGURATION ==============
+# CONFIGURATION
 MODEL_PATH = os.path.join("..", "offline", "knn_data.npz")
 IMAGES_DIR = os.path.join("..", "images", "postal_code")
 RESULTS_DIR = os.path.join("..", "images", "results")
@@ -63,7 +62,7 @@ def inference(mode="features"):
         contours = detect_contours(binarized)
         rectangles = filter_contours(contours)
 
-        # Q9: Split touching digits
+        # Split touching digits
         rectangles = split_touching_digits(binarized, rectangles)
 
         true_code = img_name.split(" ")[0]
