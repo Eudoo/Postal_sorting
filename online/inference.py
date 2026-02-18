@@ -15,7 +15,12 @@ from metrics import display_metrics
 # ============== CONFIGURATION ==============
 MODEL_PATH = os.path.join("..", "offline", "knn_data.npz")
 IMAGES_DIR = os.path.join("..", "images", "postal_code")
+RESULTS_DIR = os.path.join("..", "images", "results")
 K = 3
+
+# Create results directory if it doesn't exist
+if not os.path.exists(RESULTS_DIR):
+    os.makedirs(RESULTS_DIR)
 
 
 def inference(mode="features"):
@@ -104,7 +109,16 @@ def inference(mode="features"):
             title += f" | {m}: {''.join(predictions[m])}"
         plt.title(title)
         plt.axis('off')
-        plt.show()
+        
+        # Save annotated image to results directory
+        pred_codes_str = "_".join([f"{m}-{''.join(predictions[m])}" for m in methods])
+        base_filename = img_name.replace('.png', '').replace(' ', '_').replace('(', '').replace(')', '')
+        output_filename = f"{base_filename}_{pred_codes_str}.png"
+        output_path = os.path.join(RESULTS_DIR, output_filename)
+        plt.savefig(output_path, bbox_inches='tight', dpi=100)
+        print(f"  [saved] {output_filename}")
+        
+        plt.close()  # Close to avoid memory buildup
 
     # ============== 6. Metrics ==============
     for m in methods:
