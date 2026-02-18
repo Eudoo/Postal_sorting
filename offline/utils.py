@@ -138,8 +138,24 @@ def calculate_cavities(digit_binary_img):
         west_surface, west_bary
     )
 
+def calculate_solidity(digit_binary_img):
+    """Solidity = contour area / convex hull area. Invariant to scale."""
+    contours, _ = cv2.findContours(digit_binary_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return 0.0
+    # Take largest contour
+    contour = max(contours, key=cv2.contourArea)
+    area = cv2.contourArea(contour)
+    hull = cv2.convexHull(contour)
+    hull_area = cv2.contourArea(hull)
+    if hull_area == 0:
+        return 0.0
+    return area / hull_area
+
 def create_feature_vector(digit_img):
-    return list(calculate_cavities(digit_img))
+    cavities = list(calculate_cavities(digit_img))
+    solidity = calculate_solidity(digit_img)
+    return cavities + [solidity]
 
 
 # 4- Normalization Functions
