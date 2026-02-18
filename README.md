@@ -4,6 +4,22 @@ Projet de Vision par Ordinateur (3e année) — Classification de chiffres manus
 
 ---
 
+## Correspondance Questions / Fonctionnalités
+
+| Question | Intitulé | Fichiers / Fonctions | Section README |
+|---|---|---|---|
+| **Q1** | Espace de décision | `utils.py` → `calculate_cavities()`, `create_feature_vector()` | [Espace de Décision — 11 Features](#espace-de-décision--11-features-q1-q7) |
+| **Q2** | Apprentissage hors-ligne | `labeling.py` → extraction + normalisation + sauvegarde | [Script d'Entraînement](#offlinelabelingpy--script-dentraînement) |
+| **Q3** | k-NN (k=3) | `knn_utils.py` → `predict_features_knn()` | [Classification](#classification-q3-q5) |
+| **Q4** | Validation | `inference.py` → `--mode features`, `metrics.py` → `display_metrics()` | [Performances](#performances) |
+| **Q5** | Plus proche moyenne | `knn_utils.py` → `predict_centroid_knn()`, `utils.py` → `calculate_centroids()` | [Classification](#classification-q3-q5) |
+| **Q6** | Comparer k-NN vs centroïdes | `inference.py` → `--mode both` | [Performances](#performances) |
+| **Q7** | Descripteurs regionprops | `utils.py` → `calculate_solidity()` | [Espace de Décision — 11 Features](#espace-de-décision--11-features-q1-q7) |
+| **Q8** | Recalage en rotation | `utils.py` → `correct_rotation()` | [Recalage en Rotation (Q8)](#recalage-en-rotation-q8) |
+| **Q9** | Séparation chiffres collés | `utils.py` → `split_touching_digits()` | [Séparation de Chiffres Collés (Q9)](#séparation-de-chiffres-collés-q9) |
+
+---
+
 ## Architecture du Projet
 
 ```
@@ -35,21 +51,21 @@ Tri_Postal_KNN/
 
 Le cœur du projet. Contient toute la chaîne de traitement :
 
-| Section | Fonctions | Description |
-|---|---|---|
-| **Prétraitement** | `binarize_img()` | Conversion BGR → Niveaux de gris → Binarisation Otsu (BINARY_INV) |
-| **Segmentation** | `detect_contours()` | Détection de contours externes (RETR_EXTERNAL) |
-| | `filter_contours()` | Filtrage du bruit (aire > 20px), tri par lignes puis par x |
-| | `extract_characters()` | Extraction ROI → redimensionnement 64×64 → re-binarisation → correction rotation |
-| | `split_touching_digits()` | Q9 : Séparation de chiffres collés par profil de projection vertical |
-| **Rotation** | `correct_rotation()` | Q8 : Redressement par moments centraux (axe principal → vertical) |
-| **Features** | `calculate_cavities()` | 10 features par masques de visibilité murale (N/S/E/W) |
-| | `calculate_solidity()` | Solidité = aire contour / aire enveloppe convexe |
-| | `create_feature_vector()` | Assemblage du vecteur final (11 features) |
-| **Normalisation** | `normalize_features()` | Normalisation Min-Max sur l'ensemble d'entraînement |
-| | `apply_normalization()` | Application des min/max pré-calculés sur un vecteur test |
-| | `calculate_centroids()` | Calcul du vecteur moyen par classe (10 centroïdes) |
-| **Données** | `save_data()` / `load_data()` | Sauvegarde/chargement du modèle (.npz) |
+| Section | Fonctions | Question | Description |
+|---|---|---|---|
+| **Prétraitement** | `binarize_img()` | Q1-Q2 | Conversion BGR → Niveaux de gris → Binarisation Otsu (BINARY_INV) |
+| **Segmentation** | `detect_contours()` | Q1-Q2 | Détection de contours externes (RETR_EXTERNAL) |
+| | `filter_contours()` | Q1-Q2 | Filtrage du bruit (aire > 20px), tri par lignes puis par x |
+| | `extract_characters()` | Q1-Q2, Q8 | Extraction ROI → redimensionnement 64×64 → re-binarisation → correction rotation |
+| | `split_touching_digits()` | **Q9** | Séparation de chiffres collés par profil de projection vertical |
+| **Rotation** | `correct_rotation()` | **Q8** | Redressement par moments centraux (axe principal → vertical) |
+| **Features** | `calculate_cavities()` | **Q1** | 10 features par masques de visibilité murale (N/S/E/W) |
+| | `calculate_solidity()` | **Q7** | Solidité = aire contour / aire enveloppe convexe |
+| | `create_feature_vector()` | Q1, Q7 | Assemblage du vecteur final (11 features) |
+| **Normalisation** | `normalize_features()` | Q2 | Normalisation Min-Max sur l'ensemble d'entraînement |
+| | `apply_normalization()` | Q3-Q4 | Application des min/max pré-calculés sur un vecteur test |
+| | `calculate_centroids()` | **Q5** | Calcul du vecteur moyen par classe (10 centroïdes) |
+| **Données** | `save_data()` / `load_data()` | Q2 | Sauvegarde/chargement du modèle (.npz) |
 
 ### `offline/labeling.py` — Script d'Entraînement
 
@@ -57,11 +73,11 @@ Parcourt les 10 images d'entraînement (0.png à 9.png), extrait 5 chiffres par 
 
 ### `online/knn_utils.py` — Algorithmes de Classification
 
-| Fonction | Description |
-|---|---|
-| `calculate_distance()` | Distance euclidienne entre deux vecteurs |
-| `predict_features_knn()` | k-NN classique : k=3 voisins + vote majoritaire (Counter) |
-| `predict_centroid_knn()` | Plus proche moyenne : distance au centroïde de chaque classe |
+| Fonction | Question | Description |
+|---|---|---|
+| `calculate_distance()` | Q3 | Distance euclidienne entre deux vecteurs |
+| `predict_features_knn()` | **Q3** | k-NN classique : k=3 voisins + vote majoritaire (Counter) |
+| `predict_centroid_knn()` | **Q5** | Plus proche moyenne : distance au centroïde de chaque classe |
 
 ### `online/inference.py` — Script de Prédiction
 
@@ -75,9 +91,9 @@ Calcul de : précision par chiffre, précision par code postal, matrice de confu
 
 ## Fonctionnalités Développées
 
-### Espace de Décision — 11 Features
+### Espace de Décision — 11 Features *(Q1, Q7)*
 
-Le vecteur de features combine des **descripteurs de cavités** (masques de visibilité murale) et un **descripteur de forme** (regionprops) :
+Le vecteur de features combine des **descripteurs de cavités** (masques de visibilité murale, **Q1**) et un **descripteur de forme** (regionprops, **Q7**) :
 
 | # | Feature | Description | Plage |
 |---|---|---|---|
@@ -98,14 +114,14 @@ Le vecteur de features combine des **descripteurs de cavités** (masques de visi
 - **Cavité centrale** = bloqué dans les 4 directions (trou fermé, ex: intérieur du 0, 8)
 - **Cavité directionnelle** = bloqué dans 3 directions, ouvert dans 1 (ex: ouverture du 6 vers la gauche)
 
-### Classification
+### Classification *(Q3, Q5)*
 
-| Méthode | Principe |
-|---|---|
-| **k-NN (k=3)** | Distance euclidienne aux 50 échantillons + vote majoritaire des 3 plus proches |
-| **Plus proche centroïde** | Distance euclidienne au vecteur moyen de chaque classe (10 centroïdes) |
+| Méthode | Question | Principe |
+|---|---|---|
+| **k-NN (k=3)** | **Q3** | Distance euclidienne aux 50 échantillons + vote majoritaire des 3 plus proches |
+| **Plus proche centroïde** | **Q5** | Distance euclidienne au vecteur moyen de chaque classe (10 centroïdes) |
 
-### Normalisation
+### Normalisation *(Q2)*
 
 **Min-Max Scaling** appliquée à toutes les features pour éviter que certaines dimensions dominent le calcul de distance euclidienne. Les paramètres (min, max) sont calculés sur le jeu d'entraînement et réappliqués sur les données de test.
 
@@ -134,7 +150,7 @@ Intégré dans `labeling.py` et `inference.py` après `filter_contours()`.
 
 ## Performances
 
-### Résultats Actuels (11 features + rotation Q8 + séparation Q9)
+### Résultats Actuels *(Q4, Q6)* — 11 features + rotation Q8 + séparation Q9
 
 | Méthode | Précision Chiffres | Précision Codes Postaux |
 |---|---|---|
