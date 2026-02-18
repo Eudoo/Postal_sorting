@@ -107,27 +107,72 @@ def calculate_cavities(digit_binary_img):
     # West cavity: open to West, blocked N + S + E
     west = bg_mask & wall_north & wall_south & wall_east & (~wall_west)
 
-    # Normalize each surface by total image area
+    # --- Central: surface + connectivity (nb connected blocks) ---
+    central_surface = np.sum(central) / img_area
+    if np.sum(central) > 0:
+        num_labels, _ = cv2.connectedComponents(central.astype(np.uint8) * 255)
+        central_nb_blocks = (num_labels - 1) / 2  # 0->0, 1->0.5, 2->1.0
+    else:
+        central_nb_blocks = 0.0
+
+    # --- Helper: surface + barycenter Y for a directional cavity ---
+    def cavity_features(mask):
+        surface = np.sum(mask) / img_area
+        if np.sum(mask) > 0:
+            ys = np.where(mask)[0]  # row indices of True pixels
+            barycenter_y = np.mean(ys) / rows  # normalize by height [0, 1]
+        else:
+            barycenter_y = 0.5  # neutral default (center)
+        return surface, barycenter_y
+
+    north_surface, north_bary = cavity_features(north)
+    south_surface, south_bary = cavity_features(south)
+    east_surface, east_bary = cavity_features(east)
+    west_surface, west_bary = cavity_features(west)
+
     return (
-        np.sum(central) / img_area,
-        np.sum(north) / img_area,
-        np.sum(south) / img_area,
-        np.sum(east) / img_area,
-        np.sum(west) / img_area
+        central_surface, central_nb_blocks,
+        north_surface, north_bary,
+        south_surface, south_bary,
+        east_surface, east_bary,
+        west_surface, west_bary
     )
 
 def create_feature_vector(digit_img):
-    central, north, south, east, west = calculate_cavities(digit_img)
-    return [central, north, south, east, west]
+    return list(calculate_cavities(digit_img))
 
 
-# 4- Data Management Functions
+# 4- Normalization Functions
 
-def save_data(features_list, labels_list, filename):
-    np.savez(filename, features_list=features_list, labels_list=labels_list)
+def normalize_features(X):
+    """Min-Max normalization. Returns normalized X, min_vals, max_vals."""
+    min_vals = np.min(X, axis=0)
+    max_vals = np.max(X, axis=0)
+    range_vals = max_vals - min_vals
+    range_vals[range_vals == 0] = 1  # avoid division by zero
+    X_norm = (X - min_vals) / range_vals
+    return X_norm, min_vals, max_vals
+
+def apply_normalization(features, min_vals, max_vals):
+    """Apply pre-computed Min-Max normalization to a single feature vector."""
+    range_vals = max_vals - min_vals
+    range_vals[range_vals == 0] = 1
+    return (np.array(features) - min_vals) / range_vals
+
+
+# 5- Data Management Functions
+
+def save_data(features_list, labels_list, filename, min_vals=None, max_vals=None):
+    np.savez(filename,
+             features_list=features_list,
+             labels_list=labels_list,
+             min_vals=min_vals,
+             max_vals=max_vals)
 
 def load_data(filename):
     data = np.load(filename)
     features_list = data['features_list']
     labels_list = data['labels_list']
-    return features_list, labels_list
+    min_vals = data['min_vals']
+    max_vals = data['max_vals']
+    return features_list, labels_list, min_vals, max_vals

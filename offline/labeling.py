@@ -44,9 +44,13 @@ for digit in range(10):
 X = np.array(X_data)
 y = np.array(y_data)
 
-print(f"X shape: {X.shape}")
+print(f"X shape (raw): {X.shape}")
 print(f"y shape: {y.shape}")
 
-# Save training data
-save_data(X, y, OUTPUT_FILE)
+# Normalize features (Min-Max Scaling)
+X_norm, min_vals, max_vals = normalize_features(X)
+print(f"X shape (normalized): {X_norm.shape}")
+
+# Save training data with normalization parameters
+save_data(X_norm, y, OUTPUT_FILE, min_vals, max_vals)
 print(f"Training data saved to {OUTPUT_FILE}")

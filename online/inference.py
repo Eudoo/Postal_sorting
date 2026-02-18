@@ -17,7 +17,7 @@ IMAGES_DIR = os.path.join("..", "images", "postal_code")
 K = 3
 
 # ============== 1. Load training data ==============
-X_train, y_train = load_data(MODEL_PATH)
+X_train, y_train, min_vals, max_vals = load_data(MODEL_PATH)
 print(f"Training data loaded: X={X_train.shape}, y={y_train.shape}")
 
 # ============== 2. Load test image ==============
@@ -55,8 +55,11 @@ for img_name in test_images:
         # Create feature vector
         features = create_feature_vector(digit_img)
 
+        # Normalize with training params
+        features_norm = apply_normalization(features, min_vals, max_vals)
+
         # Predict with KNN
-        prediction = predict_knn(features, X_train, y_train, k=K)
+        prediction = predict_knn(features_norm, X_train, y_train, k=K)
         postal_code.append(str(int(prediction)))
 
         # Annotate image
